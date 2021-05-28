@@ -1,0 +1,103 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+<!-- badges: start -->
+<!-- badges: end -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%")
+```
+
+# anahita
+
+The **anahita** package is the central code repository for supporting the majority of the SI related data pipelines. The code is arrange in two types
+of scripts:
+
+* update-*.R provide the methods that are triggered by the scheduled automations
+* utils-*.R provide a number of utility functions to ingest, process and transform the data
+
+## Installation
+
+You can install the anahita package from the `forum-intelligence` GitHub account:
+
+```r
+remotes::install_github("https://github.com/forum-intelligence/anahita")
+```
+
+The package has a number of dependencies, mostly providing custom API wrappers to various external sources of data:
+
+```r
+remotes::install_github("https://github.com/forum-intelligence/nr2")
+remotes::install_github("https://github.com/forum-intelligence/salesforcer")
+remotes::install_github("https://github.com/forum-intelligence/striper")
+remotes::install_github("https://github.com/forum-intelligence/Rwefsigapi")
+remotes::install_github("https://github.com/forum-intelligence/mixpanel")
+```
+
+# Getting Started
+
+## Setting Credentials 
+
+To get started, you'll need to setup a number of authentication credentials to access the various remote and internal databases. You can
+run the method `anahita::create_config()` and edit the file with the appropriate credentials.
+
+Note that for Nr2, the authentication requires to retrieve a bearer token that remains valid for 7 days. This is documented 
+in the corresponding [Nr2](https://github.com/forum-intelligence/nr2) package.
+
+## Opening Connections
+
+The package provides some utility functions to faciliate the connections to various databases. All functions
+however take the connection as an argument so you are free to set your connections in your preferred way. The package uses
+the `DBI::dbConnect` method. Available connections are presented below and assume you have properly set-up your credentials 
+in the configuration file.
+
+```r
+anahita::connect_dw()
+anahita::connect_anahita()
+```
+
+# Company related ETL
+
+Every day, we run a procedure that extracts all company records from Salesforce and from CrunchBase and perform a number
+of cleaning and matching operations.
+
+# Community related ETL
+
+For practicality, we index every method with an prefix for the various communities, namely ncs, gis, dms, etc. Some 
+community specific methods are actually wrappers over more generic methods that can be used. For example, 
+`ncs_invoices` calls the method `get_tlo_invoices`, `gis_all_orgs_gis` calls `get_tlo_contracts`.
+
+## Contract based communities
+
+Technically, there are different ways to retrieve the organisations belonging to different communities. The simplest method
+is to access all organisations in the Salesforce contract based communities. These communities are automatically managed by
+contract information. The alternative is to query directly the contracts. We favor the latter for many methods. However, a
+community like the Technology Pioneers, which is not contract contract based, needs to be queried through the community 
+membership.
+
+## New Champions
+
+The main function that is called by for scheduled tasks is `update_ncs_tables`. It relies on a number of utility functions
+that can be very useful in many contexts.
+
+A couple of examples are shown below.
+
+```r
+conn <- connect_dw()
+# Retrieve all NCs organisations with active contracts
+ncs_orgs <- ncs_all_orgs(conn)
+# Retrieve all NCs organisations by memebrship
+ncs_orgs <- ncs_all_orgs_by_membership(conn)
+# Retrieve NCs members of the New Champions community
+ncs_memb <- ncs_members(conn, ncs_orgs$org_id)
+# Retrieve GI companies (includes TPs)
+gis_orgs <- gis_all_orgs()
+# Retrieve TFE and Operational Contacts for GIs
+gis_contacts(conn, gis_orgs$org_id)
+```

@@ -1,0 +1,7 @@
+^LICENSE\.md$
+_config.yml
+^nr2_wrapper\.rds$
+README.Rmd
+README.html
+data
+data/*
